@@ -12,7 +12,7 @@
     :root { color-scheme: dark; --ground:#10100f; --surface:#191918; --raised:#252523; --border:#30302d; --text:#f1f0eb; --muted:#b5b5ac; --primary:#b4d9c8; --ink:#14251d; --warning:#d5ba88; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--ground); color:var(--text); font-size:16px; line-height:1.55; }
     :root[data-theme="light"] { color-scheme:light; --ground:#f5f5f1; --surface:#fff; --raised:#edede7; --border:#ddddd5; --text:#252521; --muted:#57574f; --primary:#315f4e; --ink:#fff; --warning:#7e5e28; }
     * { box-sizing:border-box; } body { margin:0; min-width:320px; } main { max-width:720px; margin:0 auto; padding:32px 20px 56px; }
-    .brand { display:flex; align-items:center; gap:10px; font-size:20px; font-weight:650; letter-spacing:-.03em; margin-bottom:40px; } .brand svg { color:var(--primary); }
+    .brand { display:flex; align-items:center; gap:10px; font-size:20px; font-weight:650; letter-spacing:-.03em; margin-bottom:40px; }
     h1 { font-size:clamp(27px,5vw,36px); line-height:1.2; font-weight:650; letter-spacing:-.035em; margin:0 0 16px; } h2 { font-size:18px; font-weight:600; margin:0; } p { margin:0 0 16px; } .intro { color:var(--muted); max-width:60ch; }
     .steps { margin:24px 0; padding:0; list-style:none; display:grid; gap:12px; } .steps li { display:flex; gap:12px; align-items:flex-start; } .step { display:grid; place-items:center; flex:0 0 26px; height:26px; border-radius:50%; background:var(--raised); color:var(--primary); font-size:13px; font-weight:650; }
     #workspaces { display:grid; gap:16px; margin:28px 0 24px; } .workspace { padding:20px; background:var(--surface); border:1px solid var(--border); border-radius:10px; min-width:0; } .workspace small { display:block; color:var(--muted); margin:4px 0 12px; } .groups { padding:0 0 0 20px; margin:0 0 18px; overflow-wrap:anywhere; } .groups li + li { margin-top:5px; }
@@ -23,16 +23,17 @@
 </head>
 <body>
 <main>
-  <div class="brand"><svg width="31" height="31" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M14 3H8a5 5 0 0 0-5 5v6h11V3Zm4 0h6a5 5 0 0 1 5 5v6H18V3ZM3 18h11v11H8a5 5 0 0 1-5-5v-6Zm15 0h11v6a5 5 0 0 1-5 5h-6V18Z" fill="currentColor"/></svg>Splitcount</div>
+  <div class="brand">Splitcount</div>
   <h1>Tus grupos del sitio anterior</h1>
   <p class="intro">Splitcount se mudó a splitcount.raulmar.com. Este navegador puede conservar grupos locales en la dirección anterior; recupéralos aquí y llévalos al nuevo sitio.</p>
   <ol class="steps">
-    <li><span class="step">1</span><span>Descarga un respaldo de cada espacio que quieras recuperar.</span></li>
-    <li><span class="step">2</span><span>Abre el nuevo Splitcount y entra a <strong>Ajustes → Importar respaldo</strong>.</span></li>
-    <li><span class="step">3</span><span>Selecciona el archivo descargado. Si tienes cuenta, inicia sesión para recuperar también tus grupos sincronizados.</span></li>
+    <li><span class="step">1</span><span>Descarga el respaldo del espacio que quieras recuperar. Cada archivo pertenece a un espacio independiente.</span></li>
+    <li><span class="step">2</span><span>Si son grupos de una cuenta, abre el nuevo Splitcount e <strong>inicia sesión primero con esa misma cuenta de Google</strong>.</span></li>
+    <li><span class="step">3</span><span>Ve a <strong>Ajustes → Tus datos → Importar respaldo</strong> y selecciona el archivo. Con sesión, se añade a esa cuenta; sin sesión, reemplaza los grupos actuales del navegador.</span></li>
   </ol>
   <div id="status" role="status" aria-live="polite"></div>
   <section id="workspaces" aria-label="Respaldos disponibles"></section>
+  <p class="privacy">Antes de importar, descarga un respaldo de tus grupos actuales en el nuevo sitio. No importes varios archivos seguidos sin cuenta: cada importación sin sesión reemplaza la anterior. Para recuperar copias de cuentas diferentes, entra con la cuenta correspondiente antes de importar cada archivo.</p>
   <p class="privacy">El respaldo de un grupo compartido incluye su enlace y clave de acceso. Guarda el archivo como una copia privada y compártelo solo con quienes participan.</p>
   <div class="footer"><a class="button" href="https://splitcount.raulmar.com/" rel="noreferrer">Abrir el nuevo Splitcount <span aria-hidden="true">↗</span></a><button class="secondary" type="button" id="refresh">Buscar de nuevo</button></div>
   <p class="note">Tus datos se leen únicamente en este navegador. Esta página no los envía ni los elimina. Los espacios de cuentas se muestran por separado y solo incluyen sus grupos locales; los sincronizados se recuperan iniciando sesión en el nuevo sitio.</p>
@@ -157,6 +158,7 @@ function validateState(data) {
         if (!backup.groups.length) continue;
         if (!guest) accountNumber++;
         result.workspaces.push({
+          kind: guest ? 'guest' : 'account',
           title: guest ? 'Datos sin cuenta' : `Grupos locales de cuenta ${accountNumber}`,
           filename: guest ? 'splitcount-respaldo-invitado.json' : `splitcount-respaldo-local-cuenta-${accountNumber}.json`,
           backup,
@@ -186,7 +188,7 @@ function validateState(data) {
     anchor.href = url; anchor.download = workspace.filename;
     document.body.append(anchor); anchor.click(); anchor.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    status.textContent = 'Respaldo preparado. Conserva el archivo y ábrelo en Ajustes → Importar respaldo del nuevo Splitcount.';
+    status.textContent = workspace.kind === 'account' ? 'Respaldo preparado. Inicia sesión con la cuenta correspondiente en el nuevo sitio antes de ir a Ajustes → Tus datos → Importar respaldo.' : 'Respaldo preparado. Sin sesión, importar reemplaza tus grupos actuales. Descarga una copia de ellos antes y ve a Ajustes → Tus datos → Importar respaldo.';
   }
   function show() {
     container.replaceChildren();
@@ -209,7 +211,9 @@ function validateState(data) {
       const button = element('button', 'Descargar respaldo');
       button.type = 'button'; button.setAttribute('aria-label', `Descargar respaldo: ${workspace.title}`);
       button.addEventListener('click', () => download(workspace));
-      card.append(list, button); container.append(card);
+      const warning = element('p', workspace.kind === 'guest' ? 'Sin sesión, importar reemplaza los grupos actuales. Descarga un respaldo actual primero. No importes varios archivos seguidos sin cuenta.' : 'Inicia sesión con la cuenta correspondiente ANTES de importar este archivo. Así sus grupos se añaden sin reemplazar los existentes.', 'note');
+      warning.style.margin = '0 0 18px';
+      card.append(list, warning, button); container.append(card);
     }
     status.textContent = [workspaces.length ? `${workspaces.length} ${workspaces.length === 1 ? 'respaldo disponible' : 'respaldos disponibles'}.` : '', unavailable ? 'Algunos datos no se pudieron leer por la configuración del navegador.' : '', invalidCount ? 'Encontramos datos incompletos o dañados que no se pueden importar. La copia original se conserva.' : ''].filter(Boolean).join(' ');
   }
